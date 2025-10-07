@@ -1,0 +1,2205 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fisika Kelas 12 - Semester 1</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <style>
+        body { box-sizing: border-box; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .card-hover { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .card-hover:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
+        .quiz-option { transition: all 0.3s ease; }
+        .quiz-option:hover { background-color: #f3f4f6; }
+        .quiz-option.selected { background-color: #3b82f6; color: white; }
+        .quiz-option.correct { background-color: #10b981; color: white; }
+        .quiz-option.incorrect { background-color: #ef4444; color: white; }
+        .materi-nav { position: sticky; top: 0; z-index: 10; background: white; border-bottom: 2px solid #e5e7eb; }
+        .interactive-panel { background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 2px solid #0ea5e9; }
+        .explanation-box { 
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); 
+            border-left: 4px solid #f59e0b;
+        }
+        .floating-btn {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 100;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+        .floating-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.4);
+        }
+        .floating-menu {
+            position: fixed;
+            bottom: 80px;
+            left: 20px;
+            z-index: 99;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            transition: all 0.3s ease;
+            transform-origin: bottom left;
+        }
+        .floating-menu.hidden {
+            transform: scale(0);
+            opacity: 0;
+        }
+        .floating-menu-item {
+            padding: 12px 20px;
+            border-bottom: 1px solid #e5e7eb;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .floating-menu-item:hover {
+            background-color: #f3f4f6;
+        }
+        .floating-menu-item:last-child {
+            border-bottom: none;
+        }
+        
+        /* Physics Particles Background */
+        #physics-particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            overflow: hidden;
+        }
+        .physics-particle {
+            position: absolute;
+            font-size: 24px;
+            user-select: none;
+            pointer-events: auto;
+            transition: transform 0.2s ease;
+            z-index: -1;
+        }
+        .physics-particle:hover {
+            transform: scale(1.3);
+        }
+
+        /* Chat Styles */
+        .chat-container {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            width: 350px;
+            height: 500px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+        .chat-container.hidden {
+            transform: translateY(20px);
+            opacity: 0;
+            pointer-events: none;
+        }
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .chat-messages {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            background: #f8fafc;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+        .message.own {
+            background: #3b82f6;
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 2px;
+        }
+        .message.other {
+            background: white;
+            border: 1px solid #e5e7eb;
+            margin-right: auto;
+            border-bottom-left-radius: 2px;
+        }
+        .message-system {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            text-align: center;
+            margin: 10px auto;
+            max-width: 90%;
+            font-size: 0.8em;
+            color: #92400e;
+        }
+        .message-sender {
+            font-size: 0.7em;
+            opacity: 0.7;
+            margin-bottom: 2px;
+        }
+        .chat-input-container {
+            padding: 15px;
+            border-top: 1px solid #e5e7eb;
+            background: white;
+            border-radius: 0 0 12px 12px;
+        }
+        .chat-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            resize: none;
+            font-family: inherit;
+        }
+        .chat-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+        .online-users {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0 0 8px 8px;
+            max-height: 150px;
+            overflow-y: auto;
+            display: none;
+        }
+        .online-users.show {
+            display: block;
+        }
+        .online-user {
+            padding: 8px 12px;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .online-user:last-child {
+            border-bottom: none;
+        }
+        .user-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+        }
+        .chat-toggle-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 100;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+        .chat-toggle-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.4);
+        }
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ef4444;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 0.7em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Physics Particles Background -->
+    <div id="physics-particles"></div>
+
+    <!-- Header -->
+    <header class="gradient-bg text-white shadow-lg relative z-10">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-opacity" onclick="showHome()">
+                    <div class="text-3xl">⚛️</div>
+                    <h1 class="text-2xl font-bold">SENKU physics</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div id="user-info" class="hidden">
+                        <span id="username-display" class="text-sm"></span>
+                        <button onclick="logout()" class="ml-2 px-3 py-1 bg-white text-blue-600 rounded text-sm hover:bg-blue-50">
+                            Logout
+                        </button>
+                    </div>
+                    <div id="login-section">
+                        <button onclick="showLoginModal()" class="px-4 py-2 bg-white text-blue-600 rounded-lg hover:bg-blue-50">
+                            Login
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Login Modal -->
+    <div id="login-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl p-6 w-96">
+            <h3 class="text-xl font-bold mb-4">Masuk ke Chat</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Nama Pengguna:</label>
+                    <input type="text" id="username-input" class="w-full p-3 border rounded-lg" placeholder="Masukkan nama Anda" maxlength="20">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Kelas:</label>
+                    <select id="class-input" class="w-full p-3 border rounded-lg">
+                        <option value="12A">12A</option>
+                        <option value="12B">12B</option>
+                        <option value="12C">12C</option>
+                        <option value="12D">12D</option>
+                        <option value="Guru">Guru</option>
+                    </select>
+                </div>
+                <button onclick="login()" class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700">
+                    Masuk
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Container -->
+    <div id="chat-container" class="chat-container hidden">
+        <div class="chat-header">
+            <div class="flex items-center gap-2">
+                <span>💬 Chat Kelas</span>
+                <div class="relative">
+                    <button onclick="toggleOnlineUsers()" class="text-sm bg-white bg-opacity-20 px-2 py-1 rounded">
+                        <span id="online-count">0</span> Online
+                    </button>
+                    <div id="online-users" class="online-users">
+                        <!-- Online users will be listed here -->
+                    </div>
+                </div>
+            </div>
+            <button onclick="toggleChat()" class="text-white hover:text-gray-200">
+                ✕
+            </button>
+        </div>
+        <div id="chat-messages" class="chat-messages">
+            <div class="message-system">
+                Selamat datang di chat room! Gunakan untuk berdiskusi tentang pelajaran fisika.
+            </div>
+        </div>
+        <div class="chat-input-container">
+            <div class="flex gap-2">
+                <input type="text" id="chat-input" class="chat-input flex-1" placeholder="Ketik pesan..." maxlength="500">
+                <button onclick="sendMessage()" class="bg-blue-600 text-white px-4 rounded-lg hover:bg-blue-700">
+                    Kirim
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Toggle Button -->
+    <button id="chat-toggle-btn" class="chat-toggle-btn bg-green-600 text-white p-4 rounded-full text-xl shadow-lg relative">
+        💬
+        <div id="message-notification" class="notification-badge hidden">0</div>
+    </button>
+
+    <!-- Floating Menu -->
+    <div class="floating-menu hidden" id="floating-menu">
+        <div class="floating-menu-item" onclick="showMateriList()">
+            <div class="flex items-center gap-3">
+                <div class="text-xl">📚</div>
+                <span>Materi</span>
+            </div>
+        </div>
+        <div class="floating-menu-item" onclick="showLatihanList()">
+            <div class="flex items-center gap-3">
+                <div class="text-xl">✏️</div>
+                <span>Latihan Soal</span>
+            </div>
+        </div>
+        <div class="floating-menu-item" onclick="toggleChat()">
+            <div class="flex items-center gap-3">
+                <div class="text-xl">💬</div>
+                <span>Chat Online</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Button -->
+    <button class="floating-btn bg-blue-600 text-white p-4 rounded-full text-xl shadow-lg" onclick="toggleFloatingMenu()">
+        📖
+    </button>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 py-8 relative z-10">
+        <!-- Home Section -->
+        <div id="home-section" class="space-y-8">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl font-bold text-gray-800 mb-4">Fisika Kelas 12 Semester 1</h2>
+                <p class="text-xl text-gray-600">Kurikulum Merdeka - Belajar dengan Materi Berurutan</p>
+            </div>
+
+            <!-- Main Menu (Simplified) -->
+            <div class="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+                <div class="bg-white rounded-xl shadow-lg p-6 card-hover cursor-pointer" onclick="showMateriList()">
+                    <div class="text-4xl mb-4 text-center">📚</div>
+                    <h3 class="text-xl font-bold text-center mb-2">Materi Pembelajaran</h3>
+                    <p class="text-gray-600 text-center">Pelajari 7 bab fisika semester 1</p>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg p-6 card-hover cursor-pointer" onclick="showLatihanList()">
+                    <div class="text-4xl mb-4 text-center">✏️</div>
+                    <h3 class="text-xl font-bold text-center mb-2">Latihan Soal</h3>
+                    <p class="text-gray-600 text-center">Berlatih soal dari semua bab</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Material List Section -->
+        <div id="materi-list-section" class="hidden">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold text-gray-800 mb-4">📚 Materi Fisika Semester 1</h2>
+                <p class="text-lg text-gray-600">Pilih materi yang ingin dipelajari</p>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-8">
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="bg-gradient-to-br from-red-50 to-red-100 rounded-xl p-6 card-hover cursor-pointer border-2 border-red-200" onclick="showMateri('listrik-statik')">
+                        <div class="text-4xl mb-4 text-center">⚡</div>
+                        <h4 class="text-lg font-bold text-center mb-2">1. Listrik Statik</h4>
+                        <p class="text-sm text-gray-600 text-center">Muatan, medan listrik, potensial</p>
+                    </div>
+                    <div class="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-6 card-hover cursor-pointer border-2 border-yellow-200" onclick="showMateri('listrik-dinamik')">
+                        <div class="text-4xl mb-4 text-center">🔌</div>
+                        <h4 class="text-lg font-bold text-center mb-2">2. Listrik Dinamik</h4>
+                        <p class="text-sm text-gray-600 text-center">Arus, hambatan, rangkaian</p>
+                    </div>
+                    <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 card-hover cursor-pointer border-2 border-purple-200" onclick="showMateri('medan-magnetik')">
+                        <div class="text-4xl mb-4 text-center">🧲</div>
+                        <h4 class="text-lg font-bold text-center mb-2">3. Medan Magnetik</h4>
+                        <p class="text-sm text-gray-600 text-center">Gaya magnetik, medan magnet</p>
+                    </div>
+                    <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 card-hover cursor-pointer border-2 border-green-200" onclick="showMateri('induksi-elektromagnetik')">
+                        <div class="text-4xl mb-4 text-center">🔄</div>
+                        <h4 class="text-lg font-bold text-center mb-2">4. Induksi Elektromagnetik</h4>
+                        <p class="text-sm text-gray-600 text-center">Hukum Faraday, Lenz</p>
+                    </div>
+                    <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 card-hover cursor-pointer border-2 border-blue-200" onclick="showMateri('arus-ac')">
+                        <div class="text-4xl mb-4 text-center">〰️</div>
+                        <h4 class="text-lg font-bold text-center mb-2">5. Rangkaian Arus AC</h4>
+                        <p class="text-sm text-gray-600 text-center">Arus bolak-balik, impedansi</p>
+                    </div>
+                    <div class="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl p-6 card-hover cursor-pointer border-2 border-indigo-200" onclick="showMateri('gelombang-elektromagnetik')">
+                        <div class="text-4xl mb-4 text-center">📡</div>
+                        <h4 class="text-lg font-bold text-center mb-2">6. Gelombang Elektromagnetik</h4>
+                        <p class="text-sm text-gray-600 text-center">Radiasi, spektrum EM</p>
+                    </div>
+                    <div class="bg-gradient-to-br from-pink-50 to-pink-100 rounded-xl p-6 card-hover cursor-pointer border-2 border-pink-200" onclick="showMateri('relativitas')">
+                        <div class="text-4xl mb-4 text-center">🚀</div>
+                        <h4 class="text-lg font-bold text-center mb-2">7. Teori Relativitas Khusus</h4>
+                        <p class="text-sm text-gray-600 text-center">Einstein, dilatasi waktu</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Latihan Soal List Section -->
+        <div id="latihan-list-section" class="hidden">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold text-gray-800 mb-4">✏️ Latihan Soal</h2>
+                <p class="text-lg text-gray-600">Pilih materi untuk berlatih soal</p>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-8">
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="bg-gradient-to-br from-red-50 to-red-100 rounded-xl p-6 card-hover cursor-pointer border-2 border-red-200" onclick="showLatihan('listrik-statik')">
+                        <div class="text-4xl mb-4 text-center">⚡</div>
+                        <h4 class="text-lg font-bold text-center mb-2">1. Listrik Statik</h4>
+                        <p class="text-sm text-gray-600 text-center">10 soal latihan</p>
+                    </div>
+                    <div class="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-6 card-hover cursor-pointer border-2 border-yellow-200" onclick="showLatihan('listrik-dinamik')">
+                        <div class="text-4xl mb-4 text-center">🔌</div>
+                        <h4 class="text-lg font-bold text-center mb-2">2. Listrik Dinamik</h4>
+                        <p class="text-sm text-gray-600 text-center">10 soal latihan</p>
+                    </div>
+                    <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 card-hover cursor-pointer border-2 border-purple-200" onclick="showLatihan('medan-magnetik')">
+                        <div class="text-4xl mb-4 text-center">🧲</div>
+                        <h4 class="text-lg font-bold text-center mb-2">3. Medan Magnetik</h4>
+                        <p class="text-sm text-gray-600 text-center">10 soal latihan</p>
+                    </div>
+                    <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 card-hover cursor-pointer border-2 border-green-200" onclick="showLatihan('induksi-elektromagnetik')">
+                        <div class="text-4xl mb-4 text-center">🔄</div>
+                        <h4 class="text-lg font-bold text-center mb-2">4. Induksi Elektromagnetik</h4>
+                        <p class="text-sm text-gray-600 text-center">10 soal latihan</p>
+                    </div>
+                    <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 card-hover cursor-pointer border-2 border-blue-200" onclick="showLatihan('arus-ac')">
+                        <div class="text-4xl mb-4 text-center">〰️</div>
+                        <h4 class="text-lg font-bold text-center mb-2">5. Rangkaian Arus AC</h4>
+                        <p class="text-sm text-gray-600 text-center">10 soal latihan</p>
+                    </div>
+                    <div class="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl p-6 card-hover cursor-pointer border-2 border-indigo-200" onclick="showLatihan('gelombang-elektromagnetik')">
+                        <div class="text-4xl mb-4 text-center">📡</div>
+                        <h4 class="text-lg font-bold text-center mb-2">6. Gelombang Elektromagnetik</h4>
+                        <p class="text-sm text-gray-600 text-center">10 soal latihan</p>
+                    </div>
+                    <div class="bg-gradient-to-br from-pink-50 to-pink-100 rounded-xl p-6 card-hover cursor-pointer border-2 border-pink-200" onclick="showLatihan('relativitas')">
+                        <div class="text-4xl mb-4 text-center">🚀</div>
+                        <h4 class="text-lg font-bold text-center mb-2">7. Teori Relativitas Khusus</h4>
+                        <p class="text-sm text-gray-600 text-center">10 soal latihan</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Material Sections -->
+        <div id="materi-section" class="hidden">
+            <!-- Simple back button -->
+            <div class="mb-6">
+                <button onclick="showMateriList()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all flex items-center gap-2">
+                    ← Kembali ke Daftar Materi
+                </button>
+            </div>
+
+            <!-- Listrik Statik -->
+            <div id="listrik-statik" class="materi-content hidden">
+                <div class="bg-white rounded-xl shadow-lg p-8 mb-6">
+                    <h2 class="text-3xl font-bold text-red-600 mb-6">⚡ Listrik Statik</h2>
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div>
+                            <h3 class="text-xl font-bold mb-4">📖 Penjelasan Materi</h3>
+                            <div class="space-y-4 text-gray-700">
+                                <p><strong>Muatan Listrik:</strong> Sifat dasar materi yang dapat berupa positif atau negatif. Muatan sejenis tolak-menolak, muatan berbeda jenis tarik-menarik.</p>
+                                <p><strong>Hukum Coulomb:</strong></p>
+                                <div class="bg-gray-100 p-4 rounded-lg">
+                                    <p class="font-mono">F = k × (q₁ × q₂) / r²</p>
+                                    <p class="text-sm mt-2">k = 9 × 10⁹ Nm²/C²</p>
+                                </div>
+                                <p><strong>Medan Listrik:</strong> Daerah di sekitar muatan yang masih dipengaruhi gaya listrik.</p>
+                                <div class="bg-gray-100 p-4 rounded-lg">
+                                    <p class="font-mono">E = F/q = k × Q/r²</p>
+                                </div>
+                                <p><strong>Potensial Listrik:</strong> Energi potensial per satuan muatan.</p>
+                                <div class="bg-gray-100 p-4 rounded-lg">
+                                    <p class="font-mono">V = k × Q/r</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="interactive-panel rounded-xl p-6">
+                            <h3 class="text-xl font-bold mb-4">🔬 Praktik Interaktif</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Muatan 1 (μC):</label>
+                                    <input type="number" id="q1" value="5" class="w-full p-2 border rounded-lg">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Muatan 2 (μC):</label>
+                                    <input type="number" id="q2" value="3" class="w-full p-2 border rounded-lg">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Jarak (cm):</label>
+                                    <input type="number" id="distance" value="10" class="w-full p-2 border rounded-lg">
+                                </div>
+                                <button onclick="calculateCoulomb()" class="w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700">
+                                    Hitung Gaya Coulomb
+                                </button>
+                                <div id="coulomb-result" class="p-4 bg-white rounded-lg border-2 border-red-200 text-center font-medium"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Tombol Kuis untuk Materi Listrik Statik -->
+                    <div class="mt-8 flex gap-4 justify-start">
+                        <button onclick="showMateriQuiz('listrik-statik')" class="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium">
+                            🧠 Kuis Listrik Statik
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Listrik Dinamik -->
+            <div id="listrik-dinamik" class="materi-content hidden">
+                <div class="bg-white rounded-xl shadow-lg p-8 mb-6">
+                    <h2 class="text-3xl font-bold text-yellow-600 mb-6">🔌 Listrik Dinamik</h2>
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div>
+                            <h3 class="text-xl font-bold mb-4">📖 Penjelasan Materi</h3>
+                            <div class="space-y-4 text-gray-700">
+                                <p><strong>Arus Listrik:</strong> Aliran muatan listrik per satuan waktu.</p>
+                                <div class="bg-gray-100 p-4 rounded-lg">
+                                    <p class="font-mono">I = Q/t</p>
+                                    <p class="text-sm mt-2">Satuan: Ampere (A)</p>
+                                </div>
+                                <p><strong>Hukum Ohm:</strong> Hubungan antara tegangan, arus, dan hambatan.</p>
+                                <div class="bg-gray-100 p-4 rounded-lg">
+                                    <p class="font-mono">V = I × R</p>
+                                </div>
+                                <p><strong>Daya Listrik:</strong></p>
+                                <div class="bg-gray-100 p-4 rounded-lg">
+                                    <p class="font-mono">P = V × I = I²R = V²/R</p>
+                                </div>
+                                <p><strong>Rangkaian Seri dan Paralel:</strong></p>
+                                <div class="bg-gray-100 p-4 rounded-lg">
+                                    <p class="font-mono">Seri: R_total = R₁ + R₂ + ...</p>
+                                    <p class="font-mono">Paralel: 1/R_total = 1/R₁ + 1/R₂ + ...</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="interactive-panel rounded-xl p-6">
+                            <h3 class="text-xl font-bold mb-4">🔬 Kalkulator Rangkaian</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Tegangan (V):</label>
+                                    <input type="number" id="voltage-ohm" value="12" class="w-full p-2 border rounded-lg">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Hambatan (Ω):</label>
+                                    <input type="number" id="resistance-ohm" value="4" class="w-full p-2 border rounded-lg">
+                                </div>
+                                <button onclick="calculateOhmLaw()" class="w-full bg-yellow-600 text-white py-2 rounded-lg hover:bg-yellow-700">
+                                    Hitung Arus & Daya
+                                </button>
+                                <div id="ohm-result" class="p-4 bg-white rounded-lg border-2 border-yellow-200 text-center font-medium"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Tombol Kuis untuk Materi Listrik Dinamik -->
+                    <div class="mt-8 flex gap-4 justify-start">
+                        <button onclick="showMateriQuiz('listrik-dinamik')" class="px-6 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 font-medium">
+                            🧠 Kuis Listrik Dinamik
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Medan Magnetik -->
+            <div id="medan-magnetik" class="materi-content hidden">
+                <div class="bg-white rounded-xl shadow-lg p-8 mb-6">
+                    <h2 class="text-3xl font-bold text-purple-600 mb-6">🧲 Medan Magnetik</h2>
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div>
+                            <h3 class="text-xl font-bold mb-4">📖 Penjelasan Materi</h3>
+                            <div class="space-y-4 text-gray-700">
+                                <p><strong>Medan Magnetik:</strong> Daerah di sekitar magnet yang masih dipengaruhi gaya magnetik.</p>
+                                <p><strong>Gaya Lorentz:</strong> Gaya yang dialami muatan bergerak dalam medan magnetik.</p>
+                                <div class="bg-gray-100 p-4 rounded-lg">
+                                    <p class="font-mono">F = q × v × B × sin θ</p>
+                                </div>
+                                <p><strong>Medan Magnet Kawat Lurus:</strong></p>
+                                <div class="bg-gray-100 p-4 rounded-lg">
+                                    <p class="font-mono">B = (μ₀ × I) / (2π × r)</p>
+                                    <p class="text-sm mt-2">μ₀ = 4π × 10⁻⁷ Tm/A</p>
+                                </div>
+                                <p><strong>Gaya pada Kawat Berarus:</strong></p>
+                                <div class="bg-gray-100 p-4 rounded-lg">
+                                    <p class="font-mono">F = B × I × L × sin θ</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="interactive-panel rounded-xl p-6">
+                            <h3 class="text-xl font-bold mb-4">🔬 Kalkulator Gaya Magnetik</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Medan Magnetik B (T):</label>
+                                    <input type="number" id="magnetic-field" value="0.5" step="0.1" class="w-full p-2 border rounded-lg">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Arus I (A):</label>
+                                    <input type="number" id="current-magnetic" value="2" class="w-full p-2 border rounded-lg">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Panjang Kawat (m):</label>
+                                    <input type="number" id="wire-length" value="0.1" step="0.01" class="w-full p-2 border rounded-lg">
+                                </div>
+                                <button onclick="calculateMagneticForce()" class="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700">
+                                    Hitung Gaya Magnetik
+                                </button>
+                                <div id="magnetic-result" class="p-4 bg-white rounded-lg border-2 border-purple-200 text-center font-medium"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Tombol Kuis untuk Materi Medan Magnetik -->
+                    <div class="mt-8 flex gap-4 justify-start">
+                        <button onclick="showMateriQuiz('medan-magnetik')" class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium">
+                            🧠 Kuis Medan Magnetik
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Induksi Elektromagnetik -->
+            <div id="induksi-elektromagnetik" class="materi-content hidden">
+                <div class="bg-white rounded-xl shadow-lg p-8 mb-6">
+                    <h2 class="text-3xl font-bold text-green-600 mb-6">🔄 Induksi Elektromagnetik</h2>
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div>
+                            <h3 class="text-xl font-bold mb-4">📖 Penjelasan Materi</h3>
+                            <div class="space-y-4 text-gray-700">
+                                <p><strong>Hukum Faraday:</strong> GGL induksi yang timbul berbanding lurus dengan laju perubahan fluks magnetik.</p>
+                                <div class="bg-gray-100 p-4 rounded-lg">
+                                    <p class="font-mono">ε = -N × (ΔΦ/Δt)</p>
+                                </div>
+                                <p><strong>Hukum Lenz:</strong> Arah arus induksi sedemikian rupa sehingga menentang perubahan fluks magnetik yang menyebabkannya.</p>
+                                <p><strong>Fluks Magnetik:</strong></p>
+                                <div class="bg-gray-100 p-4 rounded-lg">
+                                    <p class="font-mono">Φ = B × A × cos θ</p>
+                                </div>
+                                <p><strong>Generator Listrik:</strong> Mengubah energi mekanik menjadi energi listrik melalui induksi elektromagnetik.</p>
+                                <p><strong>Transformator:</strong> Alat untuk mengubah tegangan AC.</p>
+                                <div class="bg-gray-100 p-4 rounded-lg">
+                                    <p class="font-mono">V₁/V₂ = N₁/N₂</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="interactive-panel rounded-xl p-6">
+                            <h3 class="text-xl font-bold mb-4">🔬 Kalkulator Induksi</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Jumlah Lilitan (N):</label>
+                                    <input type="number" id="coil-turns" value="100" class="w-full p-2 border rounded-lg">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Perubahan Fluks (Wb):</label>
+                                    <input type="number" id="flux-change" value="0.02" step="0.01" class="w-full p-2 border rounded-lg">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Waktu Perubahan (s):</label>
+                                    <input type="number" id="time-change" value="0.5" step="0.1" class="w-full p-2 border rounded-lg">
+                                </div>
+                                <button onclick="calculateInduction()" class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700">
+                                    Hitung GGL Induksi
+                                </button>
+                                <div id="induction-result" class="p-4 bg-white rounded-lg border-2 border-green-200 text-center font-medium"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Tombol Kuis untuk Materi Induksi Elektromagnetik -->
+                    <div class="mt-8 flex gap-4 justify-start">
+                        <button onclick="showMateriQuiz('induksi-elektromagnetik')" class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium">
+                            🧠 Kuis Induksi Elektromagnetik
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rangkaian Arus AC -->
+            <div id="arus-ac" class="materi-content hidden">
+                <div class="bg-white rounded-xl shadow-lg p-8 mb-6">
+                    <h2 class="text-3xl font-bold text-blue-600 mb-6">〰️ Rangkaian Arus AC</h2>
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div>
+                            <h3 class="text-xl font-bold mb-4">📖 Penjelasan Materi</h3>
+                            <div class="space-y-4 text-gray-700">
+                                <p><strong>Arus Bolak-Balik:</strong> Arus listrik yang besar dan arahnya berubah-ubah secara periodik.</p>
+                                <p><strong>Nilai Efektif:</strong></p>
+                                <div class="bg-gray-100 p-4 rounded-lg">
+                                    <p class="font-mono">I_ef = I_maks/√2</p>
+                                    <p class="font-mono">V_ef = V_maks/√2</p>
+                                </div>
+                                <p><strong>Rangkaian RLC:</strong></p>
+                                <div class="bg-gray-100 p-4 rounded-lg">
+                                    <p class="font-mono">Impedansi: Z = √(R² + (X_L - X_C)²)</p>
+                                    <p class="font-mono">Reaktansi Induktif: X_L = ωL</p>
+                                    <p class="font-mono">Reaktansi Kapasitif: X_C = 1/(ωC)</p>
+                                </div>
+                                <p><strong>Resonansi:</strong> Terjadi ketika X_L = X_C</p>
+                                <div class="bg-gray-100 p-4 rounded-lg">
+                                    <p class="font-mono">f_res = 1/(2π√(LC))</p>
+                                </div>
+                                <p><strong>Daya pada Rangkaian AC:</strong></p>
+                                <div class="bg-gray-100 p-4 rounded-lg">
+                                    <p class="font-mono">P = V_ef × I_ef × cos φ</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="interactive-panel rounded-xl p-6">
+                            <h3 class="text-xl font-bold mb-4">🔬 Kalkulator Rangkaian AC</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Resistansi R (Ω):</label>
+                                    <input type="number" id="resistance-ac" value="50" class="w-full p-2 border rounded-lg">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Induktansi L (H):</label>
+                                    <input type="number" id="inductance" value="0.1" step="0.01" class="w-full p-2 border rounded-lg">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Kapasitansi C (F):</label>
+                                    <input type="number" id="capacitance" value="0.0001" step="0.00001" class="w-full p-2 border rounded-lg">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Frekuensi (Hz):</label>
+                                    <input type="number" id="frequency" value="50" class="w-full p-2 border rounded-lg">
+                                </div>
+                                <button onclick="calculateACCircuit()" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">
+                                    Hitung Impedansi
+                                </button>
+                                <div id="ac-result" class="p-4 bg-white rounded-lg border-2 border-blue-200 text-center font-medium"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Tombol Kuis untuk Materi Rangkaian Arus AC -->
+                    <div class="mt-8 flex gap-4 justify-start">
+                        <button onclick="showMateriQuiz('arus-ac')" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
+                            🧠 Kuis Rangkaian Arus AC
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gelombang Elektromagnetik -->
+            <div id="gelombang-elektromagnetik" class="materi-content hidden">
+                <div class="bg-white rounded-xl shadow-lg p-8 mb-6">
+                    <h2 class="text-3xl font-bold text-indigo-600 mb-6">📡 Gelombang Elektromagnetik</h2>
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div>
+                            <h3 class="text-xl font-bold mb-4">📖 Penjelasan Materi</h3>
+                            <div class="space-y-4 text-gray-700">
+                                <p><strong>Gelombang Elektromagnetik:</strong> Gelombang yang terdiri dari medan listrik dan medan magnet yang saling tegak lurus.</p>
+                                <p><strong>Persamaan Gelombang EM:</strong></p>
+                                <div class="bg-gray-100 p-4 rounded-lg">
+                                    <p class="font-mono">c = λ × f</p>
+                                    <p class="text-sm mt-2">c = 3 × 10⁸ m/s (cepat ramat cahaya)</p>
+                                </div>
+                                <p><strong>Spektrum Gelombang EM:</strong></p>
+                                <ul class="list-disc list-inside space-y-2 text-sm">
+                                    <li>Gelombang Radio (panjang gelombang terbesar)</li>
+                                    <li>Gelombang Mikro</li>
+                                    <li>Inframerah</li>
+                                    <li>Cahaya Tampak</li>
+                                    <li>Ultraviolet</li>
+                                    <li>Sinar-X</li>
+                                    <li>Sinar Gamma (panjang gelombang terkecil)</li>
+                                </ul>
+                                <p><strong>Energi Foton:</strong></p>
+                                <div class="bg-gray-100 p-4 rounded-lg">
+                                    <p class="font-mono">E = h × f</p>
+                                    <p class="text-sm mt-2">h = 6.63 × 10⁻³⁴ Js (konstanta Planck)</p>
+                                </div>
+                                <p><strong>Intensitas Gelombang:</strong></p>
+                                <div class="bg-gray-100 p-4 rounded-lg">
+                                    <p class="font-mono">I = P/A</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="interactive-panel rounded-xl p-6">
+                            <h3 class="text-xl font-bold mb-4">🔬 Kalkulator Gelombang EM</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Panjang Gelombang (m):</label>
+                                    <input type="number" id="wavelength" value="500e-9" step="1e-9" class="w-full p-2 border rounded-lg">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Frekuensi (Hz):</label>
+                                    <input type="number" id="em-frequency" value="6e14" step="1e12" class="w-full p-2 border rounded-lg">
+                                </div>
+                                <button onclick="calculateEMWave()" class="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700">
+                                    Hitung Parameter Gelombang
+                                </button>
+                                <div id="em-result" class="p-4 bg-white rounded-lg border-2 border-indigo-200 text-center font-medium"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Tombol Kuis untuk Materi Gelombang Elektromagnetik -->
+                    <div class="mt-8 flex gap-4 justify-start">
+                        <button onclick="showMateriQuiz('gelombang-elektromagnetik')" class="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">
+                            🧠 Kuis Gelombang Elektromagnetik
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Teori Relativitas Khusus -->
+            <div id="relativitas" class="materi-content hidden">
+                <div class="bg-white rounded-xl shadow-lg p-8 mb-6">
+                    <h2 class="text-3xl font-bold text-pink-600 mb-6">🚀 Teori Relativitas Khusus</h2>
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div>
+                            <h3 class="text-xl font-bold mb-4">📖 Penjelasan Materi</h3>
+                            <div class="space-y-4 text-gray-700">
+                                <p><strong>Postulat Einstein:</strong></p>
+                                <ol class="list-decimal list-inside space-y-2 text-sm">
+                                    <li>Hukum fisika sama dalam semua kerangka inersia</li>
+                                    <li>Cepat rambat cahaya dalam vakum sama untuk semua pengamat</li>
+                                </ol>
+                                <p><strong>Dilatasi Waktu:</strong></p>
+                                <div class="bg-gray-100 p-4 rounded-lg">
+                                    <p class="font-mono">Δt = Δt₀ / √(1 - v²/c²)</p>
+                                </div>
+                                <p><strong>Kontraksi Panjang:</strong></p>
+                                <div class="bg-gray-100 p-4 rounded-lg">
+                                    <p class="font-mono">L = L₀ × √(1 - v²/c²)</p>
+                                </div>
+                                <p><strong>Massa Relativistik:</strong></p>
+                                <div class="bg-gray-100 p-4 rounded-lg">
+                                    <p class="font-mono">m = m₀ / √(1 - v²/c²)</p>
+                                </div>
+                                <p><strong>Energi Relativistik:</strong></p>
+                                <div class="bg-gray-100 p-4 rounded-lg">
+                                    <p class="font-mono">E = m × c²</p>
+                                    <p class="font-mono">E_total² = (p × c)² + (m₀ × c²)²</p>
+                                </div>
+                                <p><strong>Efek Doppler Relativistik:</strong></p>
+                                <div class="bg-gray-100 p-4 rounded-lg">
+                                    <p class="font-mono">f = f₀ × √((1 - β)/(1 + β))</p>
+                                    <p class="text-sm mt-2">β = v/c</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="interactive-panel rounded-xl p-6">
+                            <h3 class="text-xl font-bold mb-4">🔬 Kalkulator Relativitas</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Kecepatan (v) dalam c:</label>
+                                    <input type="number" id="relativity-speed" value="0.8" step="0.1" min="0" max="0.99" class="w-full p-2 border rounded-lg">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Waktu Diam (s):</label>
+                                    <input type="number" id="proper-time" value="1" step="0.1" class="w-full p-2 border rounded-lg">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">Panjang Diam (m):</label>
+                                    <input type="number" id="proper-length" value="1" step="0.1" class="w-full p-2 border rounded-lg">
+                                </div>
+                                <button onclick="calculateRelativity()" class="w-full bg-pink-600 text-white py-2 rounded-lg hover:bg-pink-700">
+                                    Hitung Efek Relativitas
+                                </button>
+                                <div id="relativity-result" class="p-4 bg-white rounded-lg border-2 border-pink-200 text-center font-medium"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Tombol Kuis untuk Materi Relativitas -->
+                    <div class="mt-8 flex gap-4 justify-start">
+                        <button onclick="showMateriQuiz('relativitas')" class="px-6 py-3 bg-pink-600 text-white rounded-lg hover:bg-pink-700 font-medium">
+                            🧠 Kuis Teori Relativitas
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Kuis Section untuk Setiap Materi -->
+        <div id="materi-kuis-section" class="hidden">
+            <div class="mb-6">
+                <button onclick="showMateriList()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all flex items-center gap-2">
+                    ← Kembali ke Materi
+                </button>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-8">
+                <h2 id="materi-kuis-title" class="text-3xl font-bold text-gray-800 mb-6">🧠 Kuis Materi</h2>
+                <div id="materi-quiz-container">
+                    <div class="mb-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <span class="text-lg font-medium">Soal <span id="materi-question-number">1</span> dari 5</span>
+                            <span class="text-lg font-medium">Skor: <span id="materi-quiz-score">0</span></span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div id="materi-progress-bar" class="bg-blue-600 h-2 rounded-full" style="width: 20%"></div>
+                        </div>
+                    </div>
+                    <div id="materi-question-container">
+                        <h3 id="materi-question-text" class="text-xl font-medium mb-6"></h3>
+                        <div id="materi-options-container" class="space-y-3"></div>
+                    </div>
+                    
+                    <!-- Penjelasan dan Kesimpulan -->
+                    <div id="materi-explanation" class="mt-6 hidden">
+                        <div class="explanation-box p-4 rounded-lg">
+                            <h4 class="font-bold text-amber-800 mb-2">📚 Kesimpulan & Cara Pengerjaan:</h4>
+                            <div id="explanation-content" class="text-amber-800"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-8 flex justify-between">
+                        <button id="materi-prev-btn" onclick="prevMateriQuestion()" class="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 disabled:opacity-50" disabled>
+                            Sebelumnya
+                        </button>
+                        <button id="materi-next-btn" onclick="nextMateriQuestion()" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            Selanjutnya
+                        </button>
+                    </div>
+                </div>
+                <div id="materi-quiz-result" class="hidden text-center">
+                    <h3 class="text-2xl font-bold mb-4">Kuis Selesai!</h3>
+                    <div class="text-6xl mb-4">🎉</div>
+                    <p class="text-xl mb-6">Skor Anda: <span id="materi-final-score" class="font-bold text-blue-600"></span>/5</p>
+                    <button onclick="restartMateriQuiz()" class="px-8 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                        Ulangi Kuis
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Latihan Soal Section -->
+        <div id="latihan-section" class="hidden">
+            <div class="mb-6">
+                <button onclick="showLatihanList()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all flex items-center gap-2">
+                    ← Kembali ke Daftar Latihan
+                </button>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-8">
+                <h2 id="latihan-title" class="text-3xl font-bold text-gray-800 mb-6">✏️ Latihan Soal</h2>
+                <div id="latihan-container">
+                    <div class="mb-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <span class="text-lg font-medium">Soal <span id="latihan-number">1</span> dari 10</span>
+                            <span class="text-lg font-medium">Benar: <span id="latihan-score">0</span></span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div id="latihan-progress" class="bg-green-600 h-2 rounded-full" style="width: 10%"></div>
+                        </div>
+                    </div>
+                    <div id="latihan-question-container">
+                        <h3 id="latihan-question" class="text-xl font-medium mb-6"></h3>
+                        <div id="latihan-options" class="space-y-3"></div>
+                    </div>
+                    
+                    <!-- Penjelasan untuk Latihan -->
+                    <div id="latihan-explanation" class="mt-6 hidden">
+                        <div class="explanation-box p-4 rounded-lg">
+                            <h4 class="font-bold text-amber-800 mb-2">📚 Kesimpulan & Cara Pengerjaan:</h4>
+                            <div id="latihan-explanation-content" class="text-amber-800"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-8 flex justify-between">
+                        <button id="latihan-prev" onclick="prevLatihan()" class="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 disabled:opacity-50" disabled>
+                            Sebelumnya
+                        </button>
+                        <button id="latihan-next" onclick="nextLatihan()" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                            Selanjutnya
+                        </button>
+                    </div>
+                </div>
+                <div id="latihan-result" class="hidden text-center">
+                    <h3 class="text-2xl font-bold mb-4">Latihan Selesai!</h3>
+                    <div class="text-6xl mb-4">📝</div>
+                    <p class="text-xl mb-6">Jawaban Benar: <span id="latihan-final-score" class="font-bold text-green-600"></span>/10</p>
+                    <button onclick="restartLatihan()" class="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        Ulangi Latihan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyC4L6o1QZc8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8",
+            authDomain: "senku-physics-chat.firebaseapp.com",
+            databaseURL: "https://senku-physics-chat-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "senku-physics-chat",
+            storageBucket: "senku-physics-chat.appspot.com",
+            messagingSenderId: "123456789012",
+            appId: "1:123456789012:web:8Q8Q8Q8Q8Q8Q8Q8Q8Q8Q8"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const auth = firebase.auth();
+
+        // Chat State
+        let currentUser = null;
+        let chatOpen = false;
+        let unreadMessages = 0;
+        let onlineUsers = {};
+
+        // DOM Elements
+        const chatContainer = document.getElementById('chat-container');
+        const chatToggleBtn = document.getElementById('chat-toggle-btn');
+        const chatMessages = document.getElementById('chat-messages');
+        const chatInput = document.getElementById('chat-input');
+        const onlineUsersList = document.getElementById('online-users');
+        const onlineCount = document.getElementById('online-count');
+        const messageNotification = document.getElementById('message-notification');
+        const loginModal = document.getElementById('login-modal');
+        const userInfo = document.getElementById('user-info');
+        const loginSection = document.getElementById('login-section');
+        const usernameDisplay = document.getElementById('username-display');
+
+        // Initialize Chat
+        function initChat() {
+            // Check if user is already logged in
+            const savedUser = localStorage.getItem('chatUser');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                showUserInfo();
+                setupChatListeners();
+            }
+
+            setupEventListeners();
+        }
+
+        function setupEventListeners() {
+            // Hapus event listener untuk Enter key
+            // chatInput.addEventListener('keypress', function(e) {
+            //     if (e.key === 'Enter' && !e.shiftKey) {
+            //         e.preventDefault();
+            //         sendMessage();
+            //     }
+            // });
+
+            // Click outside to close online users list
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.relative')) {
+                    onlineUsersList.classList.remove('show');
+                }
+            });
+        }
+
+        function showLoginModal() {
+            loginModal.classList.remove('hidden');
+        }
+
+        function hideLoginModal() {
+            loginModal.classList.add('hidden');
+        }
+
+        function login() {
+            const username = document.getElementById('username-input').value.trim();
+            const userClass = document.getElementById('class-input').value;
+
+            if (!username) {
+                alert('Masukkan nama pengguna!');
+                return;
+            }
+
+            currentUser = {
+                id: generateUserId(),
+                username: username,
+                class: userClass,
+                timestamp: Date.now()
+            };
+
+            localStorage.setItem('chatUser', JSON.stringify(currentUser));
+            showUserInfo();
+            setupChatListeners();
+            hideLoginModal();
+
+            // Send join message
+            sendSystemMessage(`${username} bergabung ke chat`);
+        }
+
+        function generateUserId() {
+            return 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        function logout() {
+            if (currentUser) {
+                sendSystemMessage(`${currentUser.username} meninggalkan chat`);
+            }
+
+            // Remove user from online users
+            if (currentUser) {
+                database.ref('onlineUsers/' + currentUser.id).remove();
+            }
+
+            currentUser = null;
+            localStorage.removeItem('chatUser');
+            hideUserInfo();
+            chatContainer.classList.add('hidden');
+            chatOpen = false;
+
+            // Clear chat listeners
+            database.ref('messages').off();
+            database.ref('onlineUsers').off();
+        }
+
+        function showUserInfo() {
+            userInfo.classList.remove('hidden');
+            loginSection.classList.add('hidden');
+            usernameDisplay.textContent = currentUser.username;
+        }
+
+        function hideUserInfo() {
+            userInfo.classList.add('hidden');
+            loginSection.classList.remove('hidden');
+        }
+
+        function setupChatListeners() {
+            if (!currentUser) return;
+
+            // Update online status
+            const userStatusRef = database.ref('onlineUsers/' + currentUser.id);
+            userStatusRef.set({
+                username: currentUser.username,
+                class: currentUser.class,
+                lastSeen: Date.now()
+            });
+
+            // Remove user when they disconnect
+            userStatusRef.onDisconnect().remove();
+
+            // Listen for messages
+            database.ref('messages').limitToLast(100).on('child_added', (snapshot) => {
+                const message = snapshot.val();
+                displayMessage(message);
+            });
+
+            // Listen for online users
+            database.ref('onlineUsers').on('value', (snapshot) => {
+                onlineUsers = snapshot.val() || {};
+                updateOnlineUsersList();
+                updateOnlineCount();
+            });
+
+            // Clean up old online users (older than 5 minutes)
+            setInterval(() => {
+                const now = Date.now();
+                Object.keys(onlineUsers).forEach(userId => {
+                    if (now - onlineUsers[userId].lastSeen > 300000) { // 5 minutes
+                        database.ref('onlineUsers/' + userId).remove();
+                    }
+                });
+            }, 60000); // Check every minute
+        }
+
+        function toggleChat() {
+            if (!currentUser) {
+                showLoginModal();
+                return;
+            }
+
+            chatOpen = !chatOpen;
+            if (chatOpen) {
+                chatContainer.classList.remove('hidden');
+                unreadMessages = 0;
+                updateNotification();
+                // Scroll to bottom when opening chat
+                setTimeout(() => {
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }, 100);
+            } else {
+                chatContainer.classList.add('hidden');
+            }
+        }
+
+        function sendMessage() {
+            if (!currentUser) {
+                showLoginModal();
+                return;
+            }
+
+            const messageText = chatInput.value.trim();
+            if (!messageText) return;
+
+            const message = {
+                id: generateMessageId(),
+                text: messageText,
+                sender: currentUser.username,
+                senderClass: currentUser.class,
+                timestamp: Date.now(),
+                type: 'user'
+            };
+
+            database.ref('messages').push(message);
+            chatInput.value = '';
+
+            // Auto-scroll to bottom
+            setTimeout(() => {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }, 100);
+        }
+
+        function generateMessageId() {
+            return 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        function sendSystemMessage(text) {
+            const message = {
+                id: generateMessageId(),
+                text: text,
+                type: 'system',
+                timestamp: Date.now()
+            };
+
+            database.ref('messages').push(message);
+        }
+
+        function displayMessage(message) {
+            const messageDiv = document.createElement('div');
+            
+            if (message.type === 'system') {
+                messageDiv.className = 'message-system';
+                messageDiv.textContent = message.text;
+            } else {
+                const isOwnMessage = message.sender === currentUser?.username;
+                messageDiv.className = `message ${isOwnMessage ? 'own' : 'other'}`;
+                
+                messageDiv.innerHTML = `
+                    ${!isOwnMessage ? `<div class="message-sender">${message.sender} (${message.senderClass})</div>` : ''}
+                    <div>${escapeHtml(message.text)}</div>
+                    <div class="message-time" style="font-size: 0.7em; opacity: 0.7; text-align: ${isOwnMessage ? 'right' : 'left'}; margin-top: 2px;">
+                        ${formatTime(message.timestamp)}
+                    </div>
+                `;
+            }
+
+            chatMessages.appendChild(messageDiv);
+
+            // Auto-scroll to bottom if near bottom
+            const isNearBottom = chatMessages.scrollHeight - chatMessages.clientHeight <= chatMessages.scrollTop + 100;
+            if (isNearBottom) {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+
+            // Show notification for new messages when chat is closed
+            if (!chatOpen && message.type === 'user' && message.sender !== currentUser?.username) {
+                unreadMessages++;
+                updateNotification();
+            }
+        }
+
+        function updateNotification() {
+            if (unreadMessages > 0) {
+                messageNotification.classList.remove('hidden');
+                messageNotification.textContent = unreadMessages > 9 ? '9+' : unreadMessages;
+            } else {
+                messageNotification.classList.add('hidden');
+            }
+        }
+
+        function toggleOnlineUsers() {
+            onlineUsersList.classList.toggle('show');
+        }
+
+        function updateOnlineUsersList() {
+            onlineUsersList.innerHTML = '';
+            
+            Object.values(onlineUsers).forEach(user => {
+                const userDiv = document.createElement('div');
+                userDiv.className = 'online-user';
+                userDiv.innerHTML = `
+                    <div class="user-status"></div>
+                    <div>
+                        <div class="font-medium">${user.username}</div>
+                        <div class="text-xs text-gray-500">${user.class}</div>
+                    </div>
+                `;
+                onlineUsersList.appendChild(userDiv);
+            });
+        }
+
+        function updateOnlineCount() {
+            onlineCount.textContent = Object.keys(onlineUsers).length;
+        }
+
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleTimeString('id-ID', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Initialize chat when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initChat();
+            // Initialize the rest of your app...
+            new PhysicsParticles();
+            showHome();
+        });
+
+        // Physics Particles System
+        class PhysicsParticles {
+            constructor() {
+                this.particles = [];
+                this.container = document.getElementById('physics-particles');
+                this.particleEmojis = ['⚛️', '⚡', '🔌', '🧲', '🔄', '〰️', '📡', '🚀', '💡', '🔋', '🔊', '🌡️', '⚖️', '📐', '📏', '🔭', '🔬'];
+                this.mouseX = 0;
+                this.mouseY = 0;
+                this.init();
+            }
+
+            init() {
+                this.createParticles(15);
+                this.animate();
+                
+                document.addEventListener('mousemove', (e) => {
+                    this.mouseX = e.clientX;
+                    this.mouseY = e.clientY;
+                });
+            }
+
+            createParticles(count) {
+                for (let i = 0; i < count; i++) {
+                    this.createParticle();
+                }
+            }
+
+            createParticle() {
+                const particle = document.createElement('div');
+                particle.className = 'physics-particle';
+                
+                const emoji = this.particleEmojis[Math.floor(Math.random() * this.particleEmojis.length)];
+                particle.textContent = emoji;
+                
+                const x = Math.random() * window.innerWidth;
+                const y = Math.random() * window.innerHeight;
+                const size = 20 + Math.random() * 30;
+                const opacity = 0.3 + Math.random() * 0.4;
+                const vx = (Math.random() - 0.5) * 2;
+                const vy = (Math.random() - 0.5) * 2;
+                
+                particle.style.fontSize = `${size}px`;
+                particle.style.opacity = opacity;
+                
+                this.container.appendChild(particle);
+                
+                this.particles.push({
+                    element: particle,
+                    x: x,
+                    y: y,
+                    vx: vx,
+                    vy: vy,
+                    size: size,
+                    opacity: opacity
+                });
+            }
+
+            animate() {
+                this.particles.forEach(particle => {
+                    particle.vx += (Math.random() - 0.5) * 0.1;
+                    particle.vy += (Math.random() - 0.5) * 0.1;
+                    
+                    particle.vx = Math.max(Math.min(particle.vx, 2), -2);
+                    particle.vy = Math.max(Math.min(particle.vy, 2), -2);
+                    
+                    const dx = particle.x - this.mouseX;
+                    const dy = particle.y - this.mouseY;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < 150) {
+                        const force = (150 - distance) / 150;
+                        particle.vx += (dx / distance) * force * 0.5;
+                        particle.vy += (dy / distance) * force * 0.5;
+                    }
+                    
+                    particle.x += particle.vx;
+                    particle.y += particle.vy;
+                    
+                    if (particle.x < 0 || particle.x > window.innerWidth) {
+                        particle.vx *= -0.8;
+                        particle.x = Math.max(0, Math.min(particle.x, window.innerWidth));
+                    }
+                    
+                    if (particle.y < 0 || particle.y > window.innerHeight) {
+                        particle.vy *= -0.8;
+                        particle.y = Math.max(0, Math.min(particle.y, window.innerHeight));
+                    }
+                    
+                    particle.vx *= 0.99;
+                    particle.vy *= 0.99;
+                    
+                    particle.element.style.transform = `translate(${particle.x}px, ${particle.y}px)`;
+                });
+                
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+
+        // Existing navigation functions
+        function toggleFloatingMenu() {
+            const menu = document.getElementById('floating-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        function showHome() {
+            hideAllSections();
+            document.getElementById('home-section').classList.remove('hidden');
+        }
+
+        function showMateriList() {
+            hideAllSections();
+            document.getElementById('materi-list-section').classList.remove('hidden');
+            document.getElementById('floating-menu').classList.add('hidden');
+        }
+
+        function showLatihanList() {
+            hideAllSections();
+            document.getElementById('latihan-list-section').classList.remove('hidden');
+            document.getElementById('floating-menu').classList.add('hidden');
+        }
+
+        function showMateri(materiId) {
+            hideAllSections();
+            document.getElementById('materi-section').classList.remove('hidden');
+            const materiContents = document.querySelectorAll('.materi-content');
+            materiContents.forEach(content => content.classList.add('hidden'));
+            document.getElementById(materiId).classList.remove('hidden');
+            document.getElementById('floating-menu').classList.add('hidden');
+        }
+
+        function showLatihan(materiId) {
+            hideAllSections();
+            document.getElementById('latihan-section').classList.remove('hidden');
+            initLatihan(materiId);
+            document.getElementById('floating-menu').classList.add('hidden');
+        }
+
+        function showMateriQuiz(materiId) {
+            hideAllSections();
+            document.getElementById('materi-kuis-section').classList.remove('hidden');
+            
+            const materiNames = {
+                'listrik-statik': 'Listrik Statik',
+                'listrik-dinamik': 'Listrik Dinamik',
+                'medan-magnetik': 'Medan Magnetik',
+                'induksi-elektromagnetik': 'Induksi Elektromagnetik',
+                'arus-ac': 'Rangkaian Arus AC',
+                'gelombang-elektromagnetik': 'Gelombang Elektromagnetik',
+                'relativitas': 'Teori Relativitas Khusus'
+            };
+            
+            document.getElementById('materi-kuis-title').textContent = `🧠 Kuis ${materiNames[materiId]}`;
+            
+            initMateriQuiz(materiId);
+        }
+
+        function hideAllSections() {
+            const sections = ['home-section', 'materi-list-section', 'materi-section', 'materi-kuis-section', 'latihan-list-section', 'latihan-section'];
+            sections.forEach(section => {
+                document.getElementById(section).classList.add('hidden');
+            });
+        }
+
+        // Close floating menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const floatingBtn = document.querySelector('.floating-btn');
+            const floatingMenu = document.getElementById('floating-menu');
+            
+            if (!floatingBtn.contains(event.target) && !floatingMenu.contains(event.target)) {
+                floatingMenu.classList.add('hidden');
+            }
+        });
+
+        // Add chat toggle to floating menu
+        chatToggleBtn.addEventListener('click', toggleChat);
+
+        // Fungsi kalkulator yang sudah ada
+        function calculateCoulomb() {
+            const q1 = parseFloat(document.getElementById('q1').value) * 1e-6;
+            const q2 = parseFloat(document.getElementById('q2').value) * 1e-6;
+            const r = parseFloat(document.getElementById('distance').value) * 0.01;
+            const k = 9e9;
+            const force = k * Math.abs(q1 * q2) / (r * r);
+            const resultDiv = document.getElementById('coulomb-result');
+            resultDiv.innerHTML = `
+                <div class="text-lg font-bold">Gaya Coulomb</div>
+                <div>F = ${force.toExponential(2)} N</div>
+                <div class="text-sm mt-2">${q1 > 0 && q2 > 0 || q1 < 0 && q2 < 0 ? 'Tolak-menolak' : 'Tarik-menarik'}</div>
+            `;
+        }
+
+        function calculateOhmLaw() {
+            const V = parseFloat(document.getElementById('voltage-ohm').value);
+            const R = parseFloat(document.getElementById('resistance-ohm').value);
+            const I = V / R;
+            const P = V * I;
+            document.getElementById('ohm-result').innerHTML = `
+                <div>Arus: ${I.toFixed(2)} A</div>
+                <div>Daya: ${P.toFixed(2)} W</div>
+            `;
+        }
+
+        function calculateMagneticForce() {
+            const B = parseFloat(document.getElementById('magnetic-field').value);
+            const I = parseFloat(document.getElementById('current-magnetic').value);
+            const L = parseFloat(document.getElementById('wire-length').value);
+            const theta = 90 * Math.PI / 180;
+            const F = B * I * L * Math.sin(theta);
+            document.getElementById('magnetic-result').innerHTML = `
+                <div class="text-lg font-bold">Gaya Magnetik</div>
+                <div>F = ${F.toFixed(4)} N</div>
+            `;
+        }
+
+        function calculateInduction() {
+            const N = parseFloat(document.getElementById('coil-turns').value);
+            const dPhi = parseFloat(document.getElementById('flux-change').value);
+            const dt = parseFloat(document.getElementById('time-change').value);
+            const emf = -N * (dPhi / dt);
+            
+            document.getElementById('induction-result').innerHTML = `
+                <div class="text-lg font-bold">GGL Induksi</div>
+                <div>ε = ${Math.abs(emf).toFixed(4)} V</div>
+                <div class="text-sm mt-2">Arah arus induksi: ${emf > 0 ? 'berlawanan' : 'searah'} dengan perubahan fluks</div>
+            `;
+        }
+
+        function calculateACCircuit() {
+            const R = parseFloat(document.getElementById('resistance-ac').value);
+            const L = parseFloat(document.getElementById('inductance').value);
+            const C = parseFloat(document.getElementById('capacitance').value);
+            const f = parseFloat(document.getElementById('frequency').value);
+            
+            const omega = 2 * Math.PI * f;
+            const XL = omega * L;
+            const XC = 1 / (omega * C);
+            const Z = Math.sqrt(R * R + Math.pow(XL - XC, 2));
+            
+            document.getElementById('ac-result').innerHTML = `
+                <div class="text-lg font-bold">Hasil Perhitungan</div>
+                <div>Reaktansi Induktif: ${XL.toFixed(2)} Ω</div>
+                <div>Reaktansi Kapasitif: ${XC.toFixed(2)} Ω</div>
+                <div>Impedansi: ${Z.toFixed(2)} Ω</div>
+                <div class="text-sm mt-2">${XL > XC ? 'Rangkaian bersifat induktif' : XL < XC ? 'Rangkaian bersifat kapasitif' : 'Rangkaian resonansi'}</div>
+            `;
+        }
+
+        function calculateEMWave() {
+            const lambda = parseFloat(document.getElementById('wavelength').value);
+            const f = parseFloat(document.getElementById('em-frequency').value);
+            const c = 3e8;
+            
+            let resultHTML = '<div class="text-lg font-bold">Parameter Gelombang</div>';
+            
+            if (lambda > 0 && f > 0) {
+                const calculatedC = lambda * f;
+                resultHTML += `<div>Kecepatan cahaya: ${calculatedC.toExponential(2)} m/s</div>`;
+            } else if (lambda > 0) {
+                const calculatedF = c / lambda;
+                resultHTML += `<div>Frekuensi: ${calculatedF.toExponential(2)} Hz</div>`;
+            } else if (f > 0) {
+                const calculatedLambda = c / f;
+                resultHTML += `<div>Panjang Gelombang: ${calculatedLambda.toExponential(2)} m</div>`;
+            }
+            
+            const energy = 6.63e-34 * f;
+            resultHTML += `<div>Energi Foton: ${energy.toExponential(2)} J</div>`;
+            
+            document.getElementById('em-result').innerHTML = resultHTML;
+        }
+
+        function calculateRelativity() {
+            const v = parseFloat(document.getElementById('relativity-speed').value);
+            const t0 = parseFloat(document.getElementById('proper-time').value);
+            const L0 = parseFloat(document.getElementById('proper-length').value);
+            const c = 1; // dalam satuan c
+            
+            if (v >= 1) {
+                document.getElementById('relativity-result').innerHTML = `
+                    <div class="text-red-600 font-bold">Kecepatan harus kurang dari c!</div>
+                `;
+                return;
+            }
+            
+            const gamma = 1 / Math.sqrt(1 - v * v);
+            const t = t0 * gamma;
+            const L = L0 / gamma;
+            const m = gamma; // massa relativistik (dalam satuan massa diam)
+            
+            document.getElementById('relativity-result').innerHTML = `
+                <div class="text-lg font-bold">Efek Relativitas</div>
+                <div>Faktor Lorentz (γ): ${gamma.toFixed(4)}</div>
+                <div>Dilatasi Waktu: ${t.toFixed(4)} s</div>
+                <div>Kontraksi Panjang: ${L.toFixed(4)} m</div>
+                <div>Massa Relativistik: ${m.toFixed(4)} m₀</div>
+            `;
+        }
+
+        // Data kuis dan latihan soal (diperbaiki dengan 10 soal untuk setiap materi)
+        const materiQuizData = {
+            'listrik-statik': [
+                {
+                    question: "Hukum Coulomb menyatakan bahwa gaya antara dua muatan berbanding...",
+                    options: ["Lurus dengan kuadrat jarak", "Terbalik dengan kuadrat jarak", "Lurus dengan jarak", "Terbalik dengan jarak"],
+                    correct: 1,
+                    explanation: "<strong>Kesimpulan:</strong> Gaya Coulomb berbanding terbalik dengan kuadrat jarak antara dua muatan.<br><strong>Cara Pengerjaan:</strong> Ingat rumus Hukum Coulomb: F = k × (q₁ × q₂) / r². Dari rumus ini terlihat bahwa F berbanding terbalik dengan r²."
+                },
+                {
+                    question: "Dua muatan listrik +4 μC dan -2 μC terpisah sejauh 3 cm. Besar gaya Coulomb yang bekerja adalah...",
+                    options: ["8 N", "80 N", "0.8 N", "0.08 N"],
+                    correct: 1,
+                    explanation: "<strong>Kesimpulan:</strong> Gaya Coulomb dapat dihitung dengan rumus F = k × (q₁ × q₂) / r².<br><strong>Cara Pengerjaan:</strong> q₁ = 4×10⁻⁶ C, q₂ = 2×10⁻⁶ C, r = 0.03 m. F = (9×10⁹ × 4×10⁻⁶ × 2×10⁻⁶) / (0.03)² = 80 N."
+                },
+                {
+                    question: "Medan listrik pada suatu titik didefinisikan sebagai...",
+                    options: ["Gaya per satuan muatan", "Energi per satuan muatan", "Muatan per satuan luas", "Gaya per satuan luas"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Medan listrik adalah gaya per satuan muatan.<br><strong>Cara Pengerjaan:</strong> Rumus medan listrik adalah E = F/q, di mana F adalah gaya dan q adalah muatan."
+                },
+                {
+                    question: "Potensial listrik pada suatu titik berjarak r dari muatan Q adalah...",
+                    options: ["k × Q / r", "k × Q / r²", "Q / r", "Q / r²"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Potensial listrik berbanding terbalik dengan jarak.<br><strong>Cara Pengerjaan:</strong> Rumus potensial listrik adalah V = k × Q / r."
+                },
+                {
+                    question: "Kapasitor menyimpan energi dalam bentuk...",
+                    options: ["Medan listrik", "Medan magnet", "Energi kinetik", "Energi panas"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Kapasitor menyimpan energi dalam medan listrik.<br><strong>Cara Pengerjaan:</strong> Energi yang disimpan kapasitor adalah U = ½CV², yang terkait dengan medan listrik antara pelat kapasitor."
+                }
+            ],
+            'listrik-dinamik': [
+                {
+                    question: "Hukum Ohm menyatakan bahwa...",
+                    options: ["V = I × R", "I = V × R", "R = V × I", "V = I / R"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Tegangan berbanding lurus dengan arus dan hambatan.<br><strong>Cara Pengerjaan:</strong> Rumus Hukum Ohm adalah V = I × R."
+                },
+                {
+                    question: "Daya listrik pada sebuah resistor dapat dihitung dengan rumus...",
+                    options: ["P = V × I", "P = V / I", "P = I / V", "P = V² / I"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Daya listrik adalah hasil kali tegangan dan arus.<br><strong>Cara Pengerjaan:</strong> Rumus daya listrik adalah P = V × I."
+                },
+                {
+                    question: "Dalam rangkaian seri, besar arus yang mengalir adalah...",
+                    options: ["Sama di setiap titik", "Bervariasi tergantung hambatan", "Terkonsentrasi pada hambatan terkecil", "Nol pada hambatan terbesar"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Arus listrik sama di setiap titik rangkaian seri.<br><strong>Cara Pengerjaan:</strong> Dalam rangkaian seri, arus yang mengalir melalui setiap komponen adalah sama."
+                },
+                {
+                    question: "Hambatan total dalam rangkaian paralel selalu...",
+                    options: ["Lebih kecil dari hambatan terkecil", "Lebih besar dari hambatan terbesar", "Sama dengan jumlah hambatan", "Sama dengan rata-rata hambatan"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Hambatan total rangkaian paralel lebih kecil dari hambatan terkecil.<br><strong>Cara Pengerjaan:</strong> Rumus hambatan paralel: 1/R_total = 1/R₁ + 1/R₂ + ... menghasilkan R_total yang lebih kecil dari R terkecil."
+                },
+                {
+                    question: "Energi listrik yang digunakan oleh sebuah alat listrik dapat dihitung dengan...",
+                    options: ["W = V × I × t", "W = V / I × t", "W = I / V × t", "W = V × I / t"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Energi listrik adalah daya dikali waktu.<br><strong>Cara Pengerjaan:</strong> Rumus energi listrik: W = P × t = V × I × t."
+                }
+            ],
+            'medan-magnetik': [
+                {
+                    question: "Gaya Lorentz pada muatan bergerak dalam medan magnet bergantung pada...",
+                    options: ["Besar muatan, kecepatan, dan medan magnet", "Massa muatan dan medan magnet", "Hanya besar muatan", "Hanya kecepatan muatan"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Gaya Lorentz bergantung pada q, v, dan B.<br><strong>Cara Pengerjaan:</strong> Rumus gaya Lorentz: F = q × v × B × sinθ."
+                },
+                {
+                    question: "Arah gaya Lorentz pada muatan positif dapat ditentukan dengan...",
+                    options: ["Kaidah tangan kanan", "Kaidah tangan kiri", "Hukum Coulomb", "Hukum Faraday"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Arah gaya Lorentz untuk muatan positif ditentukan dengan kaidah tangan kanan.<br><strong>Cara Pengerjaan:</strong> Untuk muatan positif, arah gaya sesuai dengan kaidah tangan kanan: ibu jari = v, jari = B, telapak = F."
+                },
+                {
+                    question: "Medan magnet di sekitar kawat lurus berarus listrik memiliki bentuk...",
+                    options: ["Lingkaran konsentris", "Garis lurus", "Spiral", "Elips"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Medan magnet sekitar kawat lurus berbentuk lingkaran konsentris.<br><strong>Cara Pengerjaan:</strong> Arah medan magnet dapat ditentukan dengan kaidah tangan kanan: genggam kawat, ibu jari = arah arus, jari = arah B."
+                },
+                {
+                    question: "Besarnya medan magnet pada pusat kumparan melingkar berarus adalah...",
+                    options: ["B = (μ₀ × I × N) / (2 × R)", "B = (μ₀ × I) / (2π × R)", "B = (μ₀ × I × N) / R", "B = (μ₀ × I) / R"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Medan magnet di pusat kumparan melingkar berbanding lurus dengan arus dan jumlah lilitan.<br><strong>Cara Pengerjaan:</strong> Rumus medan magnet di pusat kumparan: B = (μ₀ × I × N) / (2 × R)."
+                },
+                {
+                    question: "Gaya antara dua kawat sejajar berarus listrik akan saling...",
+                    options: ["Tarik-menarik jika arus searah", "Tolak-menolak jika arus searah", "Selalu tarik-menarik", "Selalu tolak-menolak"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Dua kawat sejajar dengan arus searah akan tarik-menarik.<br><strong>Cara Pengerjaan:</strong> Dengan kaidah tangan kanan, medan magnet dari kawat pertama akan menghasilkan gaya pada kawat kedua yang menariknya."
+                }
+            ]
+            // Data untuk materi lainnya dapat ditambahkan dengan pola yang sama
+        };
+
+        const latihanData = {
+            'listrik-statik': [
+                {
+                    question: "Dua muatan +2μC dan -3μC terpisah 15 cm. Gaya Coulomb yang bekerja adalah...",
+                    options: ["2.4 N tarik-menarik", "2.4 N tolak-menolak", "0.24 N tarik-menarik", "0.24 N tolak-menolak"],
+                    correct: 2,
+                    explanation: "<strong>Kesimpulan:</strong> Gaya Coulomb antara muatan berbeda jenis adalah tarik-menarik.<br><strong>Cara Pengerjaan:</strong> q₁ = 2×10⁻⁶ C, q₂ = -3×10⁻⁶ C, r = 0.15 m. F = (9×10⁹ × 2×10⁻⁶ × 3×10⁻⁶) / (0.15)² = 0.24 N (tarik-menarik)"
+                },
+                {
+                    question: "Dua muatan identik +5μC terpisah sejauh 10 cm. Besar gaya tolak-menolak antara keduanya adalah...",
+                    options: ["22.5 N", "2.25 N", "0.225 N", "0.0225 N"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Gaya Coulomb antara muatan sejenis adalah tolak-menolak.<br><strong>Cara Pengerjaan:</strong> q₁ = q₂ = 5×10⁻⁶ C, r = 0.1 m. F = (9×10⁹ × 5×10⁻⁶ × 5×10⁻⁶) / (0.1)² = 22.5 N"
+                },
+                {
+                    question: "Medan listrik pada jarak 20 cm dari muatan +8μC besarnya adalah...",
+                    options: ["1.8×10⁶ N/C", "1.8×10⁵ N/C", "3.6×10⁶ N/C", "3.6×10⁵ N/C"],
+                    correct: 1,
+                    explanation: "<strong>Kesimpulan:</strong> Medan listrik berbanding terbalik dengan kuadrat jarak.<br><strong>Cara Pengerjaan:</strong> Q = 8×10⁻⁶ C, r = 0.2 m. E = (9×10⁹ × 8×10⁻⁶) / (0.2)² = 1.8×10⁵ N/C"
+                },
+                {
+                    question: "Potensial listrik pada jarak 30 cm dari muatan -6μC adalah...",
+                    options: ["-1.8×10⁵ V", "-1.8×10⁴ V", "-1.8×10³ V", "-1.8×10² V"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Potensial listrik untuk muatan negatif bernilai negatif.<br><strong>Cara Pengerjaan:</strong> Q = -6×10⁻⁶ C, r = 0.3 m. V = (9×10⁹ × -6×10⁻⁶) / 0.3 = -1.8×10⁵ V"
+                },
+                {
+                    question: "Dua muatan +4μC dan +9μC terpisah 50 cm. Letak titik yang medan listriknya nol berada...",
+                    options: ["20 cm dari muatan +4μC", "20 cm dari muatan +9μC", "30 cm dari muatan +4μC", "30 cm dari muatan +9μC"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Titik dengan medan listrik nol berada di antara dua muatan sejenis.<br><strong>Cara Pengerjaan:</strong> Misal jarak dari muatan +4μC = x, maka dari +9μC = 0.5-x. E₁ = E₂ → k×4×10⁻⁶/x² = k×9×10⁻⁶/(0.5-x)² → 2/x = 3/(0.5-x) → x = 0.2 m"
+                },
+                {
+                    question: "Sebuah kapasitor keping sejajar memiliki kapasitansi 10μF. Jika jarak antar keping diperkecil setengahnya, kapasitansinya menjadi...",
+                    options: ["20μF", "5μF", "40μF", "2.5μF"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Kapasitansi berbanding terbalik dengan jarak antar keping.<br><strong>Cara Pengerjaan:</strong> C ∝ 1/d, jika d menjadi ½, maka C menjadi 2× = 20μF"
+                },
+                {
+                    question: "Energi yang tersimpan dalam kapasitor 100μF yang dihubungkan dengan beda potensial 12 V adalah...",
+                    options: ["7.2 mJ", "72 mJ", "0.72 mJ", "720 mJ"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Energi kapasitor sebanding dengan kapasitansi dan kuadrat tegangan.<br><strong>Cara Pengerjaan:</strong> U = ½CV² = ½ × 100×10⁻⁶ × (12)² = 7.2×10⁻³ J = 7.2 mJ"
+                },
+                {
+                    question: "Tiga kapasitor 2μF, 3μF, dan 6μF disusun paralel. Kapasitansi totalnya adalah...",
+                    options: ["11μF", "1μF", "5μF", "3.27μF"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Kapasitansi total rangkaian paralel adalah jumlah masing-masing kapasitansi.<br><strong>Cara Pengerjaan:</strong> C_total = C₁ + C₂ + C₃ = 2 + 3 + 6 = 11μF"
+                },
+                {
+                    question: "Dua kapasitor 4μF dan 6μF disusun seri. Kapasitansi penggantinya adalah...",
+                    options: ["2.4μF", "10μF", "24μF", "0.417μF"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Kapasitansi total rangkaian seri lebih kecil dari kapasitansi terkecil.<br><strong>Cara Pengerjaan:</strong> 1/C_total = 1/4 + 1/6 = 5/12 → C_total = 12/5 = 2.4μF"
+                },
+                {
+                    question: "Sebuah kapasitor 50μF dihubungkan dengan sumber tegangan 20 V. Muatan yang tersimpan adalah...",
+                    options: ["1 mC", "0.1 mC", "10 mC", "100 mC"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Muatan kapasitor sebanding dengan kapasitansi dan tegangan.<br><strong>Cara Pengerjaan:</strong> Q = C×V = 50×10⁻⁶ × 20 = 1×10⁻³ C = 1 mC"
+                }
+            ],
+            'listrik-dinamik': [
+                {
+                    question: "Sebuah resistor 10Ω dialiri arus 2A. Tegangan pada resistor tersebut adalah...",
+                    options: ["20 V", "5 V", "0.2 V", "200 V"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Tegangan pada resistor sesuai Hukum Ohm.<br><strong>Cara Pengerjaan:</strong> V = I×R = 2×10 = 20 V"
+                },
+                {
+                    question: "Tiga resistor 2Ω, 3Ω, dan 6Ω disusun paralel. Hambatan totalnya adalah...",
+                    options: ["1Ω", "11Ω", "0.5Ω", "3Ω"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Hambatan total rangkaian paralel lebih kecil dari hambatan terkecil.<br><strong>Cara Pengerjaan:</strong> 1/R_total = 1/2 + 1/3 + 1/6 = 1 → R_total = 1Ω"
+                },
+                {
+                    question: "Daya listrik pada resistor 5Ω yang dihubungkan dengan tegangan 10V adalah...",
+                    options: ["20 W", "2 W", "50 W", "0.5 W"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Daya listrik dapat dihitung dengan P = V²/R.<br><strong>Cara Pengerjaan:</strong> P = V²/R = (10)²/5 = 100/5 = 20 W"
+                },
+                {
+                    question: "Energi listrik yang digunakan oleh lampu 100W selama 5 jam adalah...",
+                    options: ["0.5 kWh", "500 kWh", "5 kWh", "0.05 kWh"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Energi listrik adalah daya dikali waktu.<br><strong>Cara Pengerjaan:</strong> W = P×t = 100W × 5h = 500 Wh = 0.5 kWh"
+                },
+                {
+                    question: "Arus listrik 2A mengalir melalui kawat selama 30 menit. Muatan yang mengalir adalah...",
+                    options: ["3600 C", "60 C", "7200 C", "120 C"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Muatan listrik adalah arus dikali waktu.<br><strong>Cara Pengerjaan:</strong> Q = I×t = 2A × (30×60)s = 2×1800 = 3600 C"
+                },
+                {
+                    question: "Tiga resistor 4Ω, 6Ω, dan 12Ω disusun seri. Hambatan totalnya adalah...",
+                    options: ["22Ω", "2Ω", "0.5Ω", "18Ω"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Hambatan total rangkaian seri adalah jumlah masing-masing hambatan.<br><strong>Cara Pengerjaan:</strong> R_total = 4 + 6 + 12 = 22Ω"
+                },
+                {
+                    question: "Sebuah baterai 12V dihubungkan dengan resistor 6Ω. Arus yang mengalir adalah...",
+                    options: ["2 A", "0.5 A", "72 A", "1.5 A"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Arus listrik sesuai Hukum Ohm.<br><strong>Cara Pengerjaan:</strong> I = V/R = 12/6 = 2 A"
+                },
+                {
+                    question: "Dua resistor 3Ω dan 6Ω disusun paralel. Hambatan totalnya adalah...",
+                    options: ["2Ω", "9Ω", "0.5Ω", "18Ω"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Hambatan total rangkaian paralel lebih kecil dari hambatan terkecil.<br><strong>Cara Pengerjaan:</strong> 1/R_total = 1/3 + 1/6 = 1/2 → R_total = 2Ω"
+                },
+                {
+                    question: "Sebuah setrika listrik 350W digunakan selama 2 jam. Energi yang digunakan adalah...",
+                    options: ["0.7 kWh", "700 kWh", "7 kWh", "0.07 kWh"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Energi listrik adalah daya dikali waktu.<br><strong>Cara Pengerjaan:</strong> W = P×t = 350W × 2h = 700 Wh = 0.7 kWh"
+                },
+                {
+                    question: "Sebuah lampu pijar 60W dihubungkan dengan tegangan 120V. Hambatan lampu tersebut adalah...",
+                    options: ["240Ω", "2Ω", "7200Ω", "0.5Ω"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Hambatan dapat dihitung dari daya dan tegangan.<br><strong>Cara Pengerjaan:</strong> P = V²/R → R = V²/P = (120)²/60 = 14400/60 = 240Ω"
+                }
+            ],
+            'medan-magnetik': [
+                {
+                    question: "Sebuah muatan +2μC bergerak dengan kecepatan 10⁶ m/s dalam medan magnet 0.5 T yang tegak lurus arah geraknya. Gaya Lorentz yang dialami adalah...",
+                    options: ["1 N", "0.1 N", "10 N", "0.01 N"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Gaya Lorentz sebanding dengan muatan, kecepatan, dan medan magnet.<br><strong>Cara Pengerjaan:</strong> F = q×v×B×sinθ = 2×10⁻⁶ × 10⁶ × 0.5 × 1 = 1 N"
+                },
+                {
+                    question: "Kawat lurus panjang dialiri arus 5A. Medan magnet pada jarak 10 cm dari kawat adalah...",
+                    options: ["10⁻⁵ T", "10⁻⁶ T", "10⁻⁴ T", "10⁻⁷ T"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Medan magnet sekitar kawat lurus berbanding terbalik dengan jarak.<br><strong>Cara Pengerjaan:</strong> B = (μ₀×I)/(2π×r) = (4π×10⁻⁷×5)/(2π×0.1) = 10⁻⁵ T"
+                },
+                {
+                    question: "Sebuah kawat panjang 20 cm berada dalam medan magnet 0.4 T. Jika kawat dialiri arus 3A dan membentuk sudut 30° terhadap medan magnet, gaya magnetik yang dialami adalah...",
+                    options: ["0.12 N", "0.24 N", "0.06 N", "0.48 N"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Gaya magnetik pada kawat berbanding lurus dengan arus, panjang kawat, dan medan magnet.<br><strong>Cara Pengerjaan:</strong> F = B×I×L×sinθ = 0.4×3×0.2×sin30° = 0.4×3×0.2×0.5 = 0.12 N"
+                },
+                {
+                    question: "Sebuah partikel bermuatan bergerak melingkar dalam medan magnet uniform. Gaya magnetik berperan sebagai...",
+                    options: ["Gaya sentripetal", "Gaya gravitasi", "Gaya gesek", "Gaya normal"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Gaya Lorentz menyebabkan gerak melingkar beraturan.<br><strong>Cara Pengerjaan:</strong> F_magnet = F_sentripetal → q×v×B = m×v²/r"
+                },
+                {
+                    question: "Kumparan dengan 100 lilitan dan jari-jari 5 cm dialiri arus 2A. Medan magnet di pusat kumparan adalah...",
+                    options: ["2.5×10⁻³ T", "5×10⁻³ T", "1.25×10⁻³ T", "10⁻³ T"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Medan magnet di pusat kumparan berbanding lurus dengan jumlah lilitan dan arus.<br><strong>Cara Pengerjaan:</strong> B = (μ₀×I×N)/(2×R) = (4π×10⁻⁷×2×100)/(2×0.05) = 2.5×10⁻³ T"
+                },
+                {
+                    question: "Dua kawat sejajar berarus listrik searah 4A dan 6A terpisah 20 cm. Gaya per satuan panjang antara kedua kawat adalah...",
+                    options: ["2.4×10⁻⁵ N/m", "4.8×10⁻⁵ N/m", "1.2×10⁻⁵ N/m", "9.6×10⁻⁵ N/m"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Gaya antara dua kawat sejajar berbanding lurus dengan perkalian arus dan berbanding terbalik dengan jarak.<br><strong>Cara Pengerjaan:</strong> F/L = (μ₀×I₁×I₂)/(2π×d) = (4π×10⁻⁷×4×6)/(2π×0.2) = 2.4×10⁻⁵ N/m"
+                },
+                {
+                    question: "Sebuah elektron bergerak dengan kecepatan 10⁶ m/s tegak lurus medan magnet 0.01 T. Jari-jari lintasan elektron adalah... (massa elektron = 9.1×10⁻³¹ kg, muatan elektron = 1.6×10⁻¹⁹ C)",
+                    options: ["5.7×10⁻⁴ m", "5.7×10⁻⁵ m", "5.7×10⁻⁶ m", "5.7×10⁻⁷ m"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Jari-jari lintasan partikel bermuatan dalam medan magnet berbanding lurus dengan momentum.<br><strong>Cara Pengerjaan:</strong> r = (m×v)/(q×B) = (9.1×10⁻³¹×10⁶)/(1.6×10⁻¹⁹×0.01) = 5.7×10⁻⁴ m"
+                },
+                {
+                    question: "Sebuah kawat melingkar dengan jari-jari 10 cm dialiri arus 5A. Momen magnet kawat tersebut adalah...",
+                    options: ["0.157 A.m²", "0.0314 A.m²", "0.0785 A.m²", "0.0157 A.m²"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Momen magnet kawat melingkar sebanding dengan luas lingkaran dan arus.<br><strong>Cara Pengerjaan:</strong> μ = I×A = I×π×R² = 5×π×(0.1)² = 0.157 A.m²"
+                },
+                {
+                    question: "Sebuah partikel bermuatan masuk ke medan magnet dengan kecepatan membentuk sudut 60° terhadap arah medan. Lintasan partikel akan berbentuk...",
+                    options: ["Heliks", "Lingkaran", "Lurus", "Parabola"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Komponen kecepatan sejajar medan tidak mengalami gaya magnet, sedangkan komponen tegak lurus mengalami gaya Lorentz.<br><strong>Cara Pengerjaan:</strong> v_∥ tetap, v_⊥ menyebabkan gerak melingkar → gabungannya adalah gerak heliks"
+                },
+                {
+                    question: "Kawat lurus sangat panjang dialiri arus I. Besar medan magnet pada jarak r dari kawat adalah B. Jika jarak dijadikan 2r, medan magnet menjadi...",
+                    options: ["B/2", "B/4", "2B", "4B"],
+                    correct: 0,
+                    explanation: "<strong>Kesimpulan:</strong> Medan magnet sekitar kawat lurus berbanding terbalik dengan jarak.<br><strong>Cara Pengerjaan:</strong> B ∝ 1/r, jika r menjadi 2r, maka B menjadi B/2"
+                }
+            ]
+            // Data untuk materi lainnya dapat ditambahkan dengan pola yang sama
+        };
+
+        // Variabel dan fungsi untuk kuis dan latihan
+        let currentMateriQuizId = '';
+        let currentMateriQuestion = 0;
+        let materiQuizScore = 0;
+        let selectedMateriAnswer = null;
+        let answerSubmitted = false;
+        let shuffledMateriQuestions = [];
+
+        let currentLatihanId = '';
+        let currentLatihanQuestion = 0;
+        let latihanScore = 0;
+        let selectedLatihanAnswer = null;
+        let latihanSubmitted = false;
+        let shuffledLatihanQuestions = [];
+
+        function shuffleArray(array) {
+            const newArray = [...array];
+            for (let i = newArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return newArray;
+        }
+
+        function shuffleQuestionsAndOptions(questions) {
+            const shuffledQuestions = shuffleArray(questions);
+            
+            return shuffledQuestions.map(question => {
+                const correctAnswer = question.options[question.correct];
+                const shuffledOptions = shuffleArray(question.options);
+                const newCorrectIndex = shuffledOptions.indexOf(correctAnswer);
+                
+                return {
+                    ...question,
+                    options: shuffledOptions,
+                    correct: newCorrectIndex
+                };
+            });
+        }
+
+        function initMateriQuiz(materiId) {
+            currentMateriQuizId = materiId;
+            currentMateriQuestion = 0;
+            materiQuizScore = 0;
+            selectedMateriAnswer = null;
+            answerSubmitted = false;
+            
+            const originalQuestions = materiQuizData[materiId] || [];
+            shuffledMateriQuestions = shuffleQuestionsAndOptions(originalQuestions);
+            
+            document.getElementById('materi-quiz-container').classList.remove('hidden');
+            document.getElementById('materi-quiz-result').classList.add('hidden');
+            document.getElementById('materi-explanation').classList.add('hidden');
+            showMateriQuestion();
+        }
+
+        function showMateriQuestion() {
+            const question = shuffledMateriQuestions[currentMateriQuestion];
+            
+            document.getElementById('materi-question-number').textContent = currentMateriQuestion + 1;
+            document.getElementById('materi-quiz-score').textContent = materiQuizScore;
+            document.getElementById('materi-question-text').textContent = question.question;
+            document.getElementById('materi-progress-bar').style.width = ((currentMateriQuestion + 1) / 5) * 100 + '%';
+            
+            const optionsContainer = document.getElementById('materi-options-container');
+            optionsContainer.innerHTML = '';
+            
+            question.options.forEach((option, index) => {
+                const optionDiv = document.createElement('div');
+                optionDiv.className = 'quiz-option p-4 border rounded-lg cursor-pointer';
+                optionDiv.textContent = option;
+                optionDiv.onclick = () => selectMateriAnswer(index, optionDiv);
+                optionsContainer.appendChild(optionDiv);
+            });
+            
+            document.getElementById('materi-prev-btn').disabled = currentMateriQuestion === 0;
+            document.getElementById('materi-next-btn').textContent = currentMateriQuestion === 4 ? 'Selesai' : 'Selanjutnya';
+            
+            answerSubmitted = false;
+            selectedMateriAnswer = null;
+            document.getElementById('materi-explanation').classList.add('hidden');
+        }
+
+        function selectMateriAnswer(index, element) {
+            if (answerSubmitted) return;
+            
+            document.querySelectorAll('#materi-options-container .quiz-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            element.classList.add('selected');
+            selectedMateriAnswer = index;
+        }
+
+        function nextMateriQuestion() {
+            if (selectedMateriAnswer !== null && !answerSubmitted) {
+                showMateriAnswerFeedback();
+                answerSubmitted = true;
+                
+                if (currentMateriQuestion === 4) {
+                    setTimeout(() => {
+                        showMateriQuizResult();
+                    }, 3000);
+                }
+            } else if (answerSubmitted) {
+                if (currentMateriQuestion < 4) {
+                    currentMateriQuestion++;
+                    showMateriQuestion();
+                } else {
+                    showMateriQuizResult();
+                }
+            } else {
+                alert('Pilih jawaban terlebih dahulu!');
+            }
+        }
+
+        function showMateriAnswerFeedback() {
+            const question = shuffledMateriQuestions[currentMateriQuestion];
+            const correctIndex = question.correct;
+            
+            const options = document.querySelectorAll('#materi-options-container .quiz-option');
+            options.forEach((option, index) => {
+                if (index === correctIndex) {
+                    option.classList.add('correct');
+                } else if (index === selectedMateriAnswer && index !== correctIndex) {
+                    option.classList.add('incorrect');
+                }
+            });
+            
+            if (selectedMateriAnswer === correctIndex) {
+                materiQuizScore++;
+                document.getElementById('materi-quiz-score').textContent = materiQuizScore;
+            }
+            
+            document.getElementById('explanation-content').innerHTML = question.explanation;
+            document.getElementById('materi-explanation').classList.remove('hidden');
+            
+            document.getElementById('materi-next-btn').textContent = currentMateriQuestion === 4 ? 'Lihat Hasil' : 'Lanjut';
+        }
+
+        function prevMateriQuestion() {
+            if (currentMateriQuestion > 0) {
+                currentMateriQuestion--;
+                showMateriQuestion();
+            }
+        }
+
+        function showMateriQuizResult() {
+            document.getElementById('materi-quiz-container').classList.add('hidden');
+            document.getElementById('materi-quiz-result').classList.remove('hidden');
+            document.getElementById('materi-final-score').textContent = materiQuizScore;
+        }
+
+        function restartMateriQuiz() {
+            initMateriQuiz(currentMateriQuizId);
+        }
+
+        function initLatihan(materiId) {
+            currentLatihanId = materiId;
+            currentLatihanQuestion = 0;
+            latihanScore = 0;
+            selectedLatihanAnswer = null;
+            latihanSubmitted = false;
+            
+            const originalQuestions = latihanData[materiId] || [];
+            shuffledLatihanQuestions = shuffleQuestionsAndOptions(originalQuestions);
+            
+            const materiNames = {
+                'listrik-statik': 'Listrik Statik',
+                'listrik-dinamik': 'Listrik Dinamik',
+                'medan-magnetik': 'Medan Magnetik',
+                'induksi-elektromagnetik': 'Induksi Elektromagnetik',
+                'arus-ac': 'Rangkaian Arus AC',
+                'gelombang-elektromagnetik': 'Gelombang Elektromagnetik',
+                'relativitas': 'Teori Relativitas Khusus'
+            };
+            
+            document.getElementById('latihan-title').textContent = `✏️ Latihan ${materiNames[materiId]}`;
+            
+            document.getElementById('latihan-container').classList.remove('hidden');
+            document.getElementById('latihan-result').classList.add('hidden');
+            document.getElementById('latihan-explanation').classList.add('hidden');
+            showLatihanQuestion();
+        }
+
+        function showLatihanQuestion() {
+            const question = shuffledLatihanQuestions[currentLatihanQuestion];
+            
+            document.getElementById('latihan-number').textContent = currentLatihanQuestion + 1;
+            document.getElementById('latihan-score').textContent = latihanScore;
+            document.getElementById('latihan-question').textContent = question.question;
+            document.getElementById('latihan-progress').style.width = ((currentLatihanQuestion + 1) / 10) * 100 + '%';
+            
+            const optionsContainer = document.getElementById('latihan-options');
+            optionsContainer.innerHTML = '';
+            
+            question.options.forEach((option, index) => {
+                const optionDiv = document.createElement('div');
+                optionDiv.className = 'quiz-option p-4 border rounded-lg cursor-pointer';
+                optionDiv.textContent = option;
+                optionDiv.onclick = () => selectLatihanAnswer(index, optionDiv);
+                optionsContainer.appendChild(optionDiv);
+            });
+            
+            document.getElementById('latihan-prev').disabled = currentLatihanQuestion === 0;
+            document.getElementById('latihan-next').textContent = currentLatihanQuestion === 9 ? 'Selesai' : 'Selanjutnya';
+            
+            latihanSubmitted = false;
+            selectedLatihanAnswer = null;
+            document.getElementById('latihan-explanation').classList.add('hidden');
+        }
+
+        function selectLatihanAnswer(index, element) {
+            if (latihanSubmitted) return;
+            
+            document.querySelectorAll('#latihan-options .quiz-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            element.classList.add('selected');
+            selectedLatihanAnswer = index;
+        }
+
+        function nextLatihan() {
+            if (selectedLatihanAnswer !== null && !latihanSubmitted) {
+                showLatihanAnswerFeedback();
+                latihanSubmitted = true;
+                
+                if (currentLatihanQuestion === 9) {
+                    setTimeout(() => {
+                        showLatihanResult();
+                    }, 3000);
+                }
+            } else if (latihanSubmitted) {
+                if (currentLatihanQuestion < 9) {
+                    currentLatihanQuestion++;
+                    showLatihanQuestion();
+                } else {
+                    showLatihanResult();
+                }
+            } else {
+                alert('Pilih jawaban terlebih dahulu!');
+            }
+        }
+
+        function showLatihanAnswerFeedback() {
+            const question = shuffledLatihanQuestions[currentLatihanQuestion];
+            const correctIndex = question.correct;
+            
+            const options = document.querySelectorAll('#latihan-options .quiz-option');
+            options.forEach((option, index) => {
+                if (index === correctIndex) {
+                    option.classList.add('correct');
+                } else if (index === selectedLatihanAnswer && index !== correctIndex) {
+                    option.classList.add('incorrect');
+                }
+            });
+            
+            if (selectedLatihanAnswer === correctIndex) {
+                latihanScore++;
+                document.getElementById('latihan-score').textContent = latihanScore;
+            }
+            
+            document.getElementById('latihan-explanation-content').innerHTML = question.explanation;
+            document.getElementById('latihan-explanation').classList.remove('hidden');
+            
+            document.getElementById('latihan-next').textContent = currentLatihanQuestion === 9 ? 'Lihat Hasil' : 'Lanjut';
+        }
+
+        function prevLatihan() {
+            if (currentLatihanQuestion > 0) {
+                currentLatihanQuestion--;
+                showLatihanQuestion();
+            }
+        }
+
+        function showLatihanResult() {
+            document.getElementById('latihan-container').classList.add('hidden');
+            document.getElementById('latihan-result').classList.remove('hidden');
+            document.getElementById('latihan-final-score').textContent = latihanScore;
+        }
+
+        function restartLatihan() {
+            initLatihan(currentLatihanId);
+        }
+    </script>
+</body>
+</html>
